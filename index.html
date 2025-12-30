@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rue Brossolette - Price Evolution (92400)</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 30px;
+        }
+        
+        h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #666;
+            font-size: 16px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            opacity: 0.8;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin-bottom: 40px;
+            background: #f9fafb;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: white;
+        }
+        
+        .data-table th {
+            background: #f3f4f6;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #333;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        
+        .data-table td {
+            padding: 12px;
+            border-bottom: 1px solid #e5e7eb;
+            color: #666;
+        }
+        
+        .data-table tr:hover {
+            background: #f9fafb;
+        }
+        
+        .price {
+            color: #667eea;
+            font-weight: 600;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .success {
+            background: #efe;
+            color: #3c3;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📍 Rue Brossolette - Price Evolution</h1>
+            <p class="subtitle">92400 Courbevoie, Hauts-de-Seine • Data source: DVF (data.gouv.fr)</p>
+        </header>
+        
+        <div id="status"></div>
+        
+        <div class="stats-grid" id="stats-container">
+            <div class="stat-card">
+                <div class="stat-label">Total Transactions</div>
+                <div class="stat-value" id="stat-count">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Avg Price/m²</div>
+                <div class="stat-value" id="stat-avg">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Min Price/m²</div>
+                <div class="stat-value" id="stat-min">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Max Price/m²</div>
+                <div class="stat-value" id="stat-max">-</div>
+            </div>
+        </div>
+        
+        <div class="chart-container">
+            <canvas id="priceChart"></canvas>
+        </div>
+        
+        <h2 style="margin-top: 40px; margin-bottom: 20px; color: #333;">Price Evolution</h2>
+        <table class="data-table" id="statsTable">
+            <thead>
+                <tr>
+                    <th>Year</th>
+                    <th>Price/m²</th>
+                </tr>
+            </thead>
+            <tbody id="statsBody">
+            </tbody>
+        </table>
+    </div>
+    
+    <script>
+        let chart = null;
+        
+        async function loadData() {
+            try {
+                const response = await fetch('data.json');
+                if (!response.ok) {
+                    throw new Error('data.json not found. Please run: python fetch_dvf.py');
+                }
+                
+                const data = await response.json();
+                
+                if (!data.yearly_statistics || data.yearly_statistics.length === 0) {
+                    showStatus('No data found. Please run the fetch script first.', 'error');
+                    return;
+                }
+                
+                displayStats(data);
+                displayChart(data.yearly_statistics);
+                displayTable(data.yearly_statistics);
+                showStatus(`✓ Loaded ${data.total_transactions} transactions`, 'success');
+            } catch (error) {
+                showStatus(`Error: ${error.message}`, 'error');
+                console.error(error);
+            }
+        }
+        
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = `<div class="${type}">${message}</div>`;
+        }
+        
+        function displayStats(data) {
+            const stats = data.yearly_statistics;
+            if (stats.length === 0) return;
+            
+            const allPrices = stats.map(s => s.price_per_m2 || s.avg_price_per_m2);
+            const avgPrice = Math.round(allPrices.reduce((a, b) => a + b, 0) / allPrices.length);
+            const minPrice = Math.min(...allPrices);
+            const maxPrice = Math.max(...allPrices);
+            
+            // For simplified data without transaction count
+            const transactionCount = data.total_transactions || '—';
+            
+            document.getElementById('stat-count').textContent = transactionCount;
+            document.getElementById('stat-avg').textContent = `€${avgPrice.toLocaleString()}`;
+            document.getElementById('stat-min').textContent = `€${Math.round(minPrice).toLocaleString()}`;
+            document.getElementById('stat-max').textContent = `€${Math.round(maxPrice).toLocaleString()}`;
+        }
+        
+        function displayChart(stats) {
+            const ctx = document.getElementById('priceChart').getContext('2d');
+            
+            const labels = stats.map(s => s.year);
+            // Handle both simplified (price_per_m2) and full (avg_price_per_m2) data
+            const priceData = stats.map(s => s.price_per_m2 || s.avg_price_per_m2);
+            const minData = stats.map(s => s.min_price_per_m2 || (s.price_per_m2 * 0.95));
+            const maxData = stats.map(s => s.max_price_per_m2 || (s.price_per_m2 * 1.05));
+            
+            if (chart) {
+                chart.destroy();
+            }
+            
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Price/m²',
+                            data: priceData,
+                            borderColor: '#667eea',
+                            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 6,
+                            pointBackgroundColor: '#667eea',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
+                            pointHoverRadius: 8
+                        },
+                        {
+                            label: 'Min Price/m²',
+                            data: minData,
+                            borderColor: '#fbbf24',
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            fill: false,
+                            tension: 0.4,
+                            pointRadius: 4,
+                            pointBackgroundColor: '#fbbf24'
+                        },
+                        {
+                            label: 'Max Price/m²',
+                            data: maxData,
+                            borderColor: '#ef4444',
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            fill: false,
+                            tension: 0.4,
+                            pointRadius: 4,
+                            pointBackgroundColor: '#ef4444'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 20,
+                                font: { size: 12, weight: 'bold' }
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            padding: 12,
+                            titleFont: { size: 13, weight: 'bold' },
+                            bodyFont: { size: 12 },
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': €' + Math.round(context.parsed.y).toLocaleString();
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            ticks: {
+                                callback: function(value) {
+                                    return '€' + Math.round(value).toLocaleString();
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function displayTable(stats) {
+            const tbody = document.getElementById('statsBody');
+            tbody.innerHTML = stats.map(s => `
+                <tr>
+                    <td><strong>${s.year}</strong></td>
+                    <td class="price">€${Math.round(s.price_per_m2).toLocaleString()}</td>
+                </tr>
+            `).join('');
+        }
+        
+        // Load data when page loads
+        window.addEventListener('load', loadData);
+    </script>
+</body>
+</html>

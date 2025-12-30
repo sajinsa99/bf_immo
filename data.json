@@ -1,0 +1,36 @@
+{
+  "location": {
+    "street": "Rue Pierre Brossolette",
+    "postal_code": "92400",
+    "city": "Courbevoie",
+    "department": "Hauts-de-Seine"
+  },
+  "yearly_statistics": [
+    {
+      "year": 2020,
+      "price_per_m2": 4800
+    },
+    {
+      "year": 2021,
+      "price_per_m2": 5100
+    },
+    {
+      "year": 2022,
+      "price_per_m2": 5500
+    },
+    {
+      "year": 2023,
+      "price_per_m2": 6273
+    },
+    {
+      "year": 2024,
+      "price_per_m2": 6400
+    },
+    {
+      "year": 2025,
+      "price_per_m2": 5005
+    }
+  ],
+  "data_source": "LePrixImmo.fr (based on DVF - Demandes de Valeurs Foncières)",
+  "last_updated": "2025-12-30T20:28:48.433138"
+}
