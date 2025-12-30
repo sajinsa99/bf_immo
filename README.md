@@ -1,52 +1,54 @@
-# Rue Brossolette Price Evolution Dashboard
+# Rue Pierre Brossolette - Real Estate Price Evolution Dashboard
 
-Real estate price tracking for **Rue Brossolette, 92400 Courbevoie** (2020-2025).
+Interactive dashboard tracking real estate prices for **Rue Pierre Brossolette, 92400 Courbevoie** using data from LePrixImmo.fr (based on DVF - Demandes de Valeurs Foncières).
 
 ## Quick Start
 
-### 1. Install dependencies
+### 1. Start the dashboard
+
 ```bash
-pip install -r requirements.txt
+./bf_immo.sh start
 ```
 
-### 2. Fetch data from DVF
+Then visit: **http://localhost:8888**
+
+The dashboard will:
+- Fetch real estate price data from LePrixImmo.fr
+- Create an interactive chart showing price evolution
+- Display yearly price/m² statistics
+- Auto-generate data.json
+
+### 2. Advanced Usage
+
+#### Specify year range:
 ```bash
-python fetch_dvf.py
+./bf_immo.sh start 2020-2025    # Fetch years 2020-2025 (default)
+./bf_immo.sh start 2023-2025    # Fetch recent years only
+./bf_immo.sh start 2025-2030    # Future years (estimates)
 ```
 
-This script:
-- Downloads official DVF (Demandes de Valeurs Foncières) data from data.gouv.fr
-- Filters for Rue Brossolette, postal code 92400
-- Calculates price per m² for each transaction
-- Stores results in `data.json`
-
-### 3. View the dashboard
-Open `index.html` in your web browser:
+#### Other commands:
 ```bash
-open index.html
-```
-
-Or serve it locally:
-```bash
-python -m http.server 8000
-# Then visit http://localhost:8000
+./bf_immo.sh status             # Check if server is running
+./bf_immo.sh stop               # Stop the server
 ```
 
 ## Files
 
-- **`fetch_dvf.py`** - Python script to fetch and process DVF data
+- **`bf_immo.sh`** - Control script (start/stop/status with year range support)
+- **`fetch_lepriximmo.py`** - Scraper to fetch data from LePrixImmo.fr
 - **`index.html`** - Interactive dashboard with Chart.js
-- **`data.json`** - Generated JSON database (created after running fetch_dvf.py)
+- **`data.json`** - Generated JSON data (auto-created)
 - **`requirements.txt`** - Python dependencies
 
 ## Data Structure
 
-The `data.json` file contains:
+The `data.json` file contains yearly price/m² data:
 
 ```json
 {
   "location": {
-    "street": "Rue Brossolette",
+    "street": "Rue Pierre Brossolette",
     "postal_code": "92400",
     "city": "Courbevoie",
     "department": "Hauts-de-Seine"
@@ -54,40 +56,110 @@ The `data.json` file contains:
   "yearly_statistics": [
     {
       "year": 2020,
-      "avg_price_per_m2": 5500.00,
-      "min_price_per_m2": 5000.00,
-      "max_price_per_m2": 6000.00,
-      "transaction_count": 5
+      "price_per_m2": 4800
+    },
+    {
+      "year": 2025,
+      "price_per_m2": 5005
     }
   ],
-  "all_transactions": [...]
+  "data_source": "LePrixImmo.fr (based on DVF)",
+  "last_updated": "2025-12-30T20:24:44"
 }
 ```
 
 ## Dashboard Features
 
-- 📊 Line chart showing price evolution from 2020-2025
-- 📈 Average, min, and max price/m² per year
-- 📋 Detailed statistics table
-- 💾 Real transaction data from French tax authority
+- 📊 Interactive line chart showing price evolution
+- 📈 Year-over-year price per m² display
+- 📋 Simple statistics table (Year | Price/m²)
+- 🔄 Auto-refresh with custom year ranges
+- 💾 Real data from French real estate registry (DVF)
+- 🌐 Responsive design with gradient UI
 
 ## Data Source
 
-Data provided by the French government's open data portal:
-- **Portal**: https://www.data.gouv.fr
-- **Dataset**: Demandes de Valeurs Foncières (DVF)
+Real estate data sourced from:
+- **Website**: https://www.lepriximmo.fr
+- **Data**: Based on DVF (Demandes de Valeurs Foncières)
+- **Publisher**: French Tax Authority (DGFiP)
 - **License**: Open License 2.0
-- **Last Update**: October 19, 2025
+- **Updates**: Annual
+
+### Data Availability
+
+- 2023, 2025: Real data from LePrixImmo.fr
+- 2020-2024: Mix of scraped and estimated values
+- Future years: Estimates based on market trends
+
+## Installation
+
+### Prerequisites
+- Python 3.7+
+- bash/zsh shell
+- Internet connection
+
+### Setup
+```bash
+# Clone/download the repository
+cd bf_immo
+
+# Make script executable
+chmod +x bf_immo.sh
+
+# Start the dashboard
+./bf_immo.sh start
+```
+
+## How It Works
+
+1. **Script execution** (`./bf_immo.sh start`):
+   - Creates Python virtual environment
+   - Installs dependencies (requests, beautifulsoup4)
+   - Runs `fetch_lepriximmo.py`
+
+2. **Data fetching** (`fetch_lepriximmo.py`):
+   - Scrapes LePrixImmo.fr for each year in the range
+   - Extracts price/m² from the Rue Brossolette table row
+   - Uses fallback estimates for missing years
+   - Generates `data.json`
+
+3. **Dashboard** (`index.html`):
+   - Loads data from `data.json`
+   - Displays chart and statistics
+   - Responsive layout with modern styling
 
 ## Requirements
 
 - Python 3.7+
 - Modern web browser (Chrome, Firefox, Safari, Edge)
-- Internet connection (first run to download data)
+- Internet connection (to fetch data from LePrixImmo.fr)
+
+## Troubleshooting
+
+### "No data found" error
+- Run: `./bf_immo.sh start 2020-2025` to force data fetch
+- Check internet connection
+
+### Server won't start
+- Verify port 8888 is not in use: `lsof -i :8888`
+- Stop existing server: `./bf_immo.sh stop`
+
+### Delete cached data
+```bash
+rm data.json
+./bf_immo.sh start
+```
 
 ## Notes
 
-- First run takes a few minutes (downloading ~350MB of data)
-- Data is stored locally in `data.json`
-- Subsequent views load instantly
-- To refresh data, delete `data.json` and run the script again
+- First run installs Python dependencies (~30 seconds)
+- Data fetching takes ~5-10 seconds per year (respects site limits)
+- Subsequent starts are instant if data exists
+- Server logs available in `/tmp/bf_immo_server.log`
+
+## License
+
+This project uses publicly available data from:
+- LePrixImmo.fr
+- French government DVF database (Open License 2.0)
