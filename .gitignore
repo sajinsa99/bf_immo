@@ -1,0 +1,30 @@
+# PID files
+.http_server.pid
+*.pid
+
+# Log files
+*.log
+/tmp/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+venv/
+env/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Data files (optional - uncomment if you want to ignore them)
+# data.json
+# dvf_files/

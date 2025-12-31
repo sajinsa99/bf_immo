@@ -75,8 +75,33 @@ start_server() {
     log_info "Starting HTTP server on port $PORT..."
     cd "$SCRIPT_DIR"
     
+    # Create a temporary Python server script with no-cache headers for data.json
+    cat > /tmp/bf_immo_server.py << 'EOF'
+#!/usr/bin/env python3
+import http.server
+import socketserver
+import sys
+from pathlib import Path
+
+PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 8888
+
+class NoCacheHandler(http.server.SimpleHTTPRequestHandler):
+    def end_headers(self):
+        # Add no-cache headers for dynamic files
+        if self.path.endswith('.json') or self.path == '/':
+            self.send_header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+            self.send_header('Pragma', 'no-cache')
+            self.send_header('Expires', '0')
+        super().end_headers()
+
+handler = NoCacheHandler
+with socketserver.TCPServer(("", PORT), handler) as httpd:
+    print(f"Server running on port {PORT}", flush=True)
+    httpd.serve_forever()
+EOF
+    
     # Start server in background and save PID
-    python3 -m http.server $PORT > /tmp/bf_immo_server.log 2>&1 &
+    python3 /tmp/bf_immo_server.py $PORT > /tmp/bf_immo_server.log 2>&1 &
     echo $! > "$PID_FILE"
     
     sleep 1
@@ -132,6 +157,14 @@ check_status() {
     fi
 }
 
+# Function to restart the server
+restart_server() {
+    log_info "Restarting server..."
+    stop_server
+    sleep 1
+    start_server
+}
+
 # Main command handler
 main() {
     case "${1:-}" in
@@ -142,22 +175,26 @@ main() {
         stop)
             stop_server
             ;;
+        restart|reload)
+            restart_server
+            ;;
         status)
             check_status
             ;;
         *)
-            echo "Usage: $0 {start|stop|status} [year_range]"
+            echo "Usage: $0 {start|stop|restart|status} [year_range]"
             echo ""
             echo "Commands:"
             echo "  start [RANGE]   - Download data and start HTTP server on port 8888"
             echo "                    RANGE format: YYYY-YYYY (e.g., 2020-2025)"
             echo "  stop            - Stop the HTTP server"
+            echo "  restart|reload  - Restart the HTTP server"
             echo "  status          - Show server status"
             echo ""
             echo "Examples:"
             echo "  $0 start              # Fetch default years (2020-2025)"
             echo "  $0 start 2020-2025    # Fetch years 2020 to 2025"
-            echo "  $0 start 2023-2025    # Fetch years 2023 to 2025"
+            echo "  $0 restart            # Restart the server"
             exit 1
             ;;
     esac
