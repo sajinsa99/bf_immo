@@ -30,6 +30,7 @@ The dashboard will:
 #### Other commands:
 ```bash
 ./bf_immo.sh status             # Check if server is running
+./bf_immo.sh restart            # Restart the server (clears browser cache)
 ./bf_immo.sh stop               # Stop the server
 ```
 
