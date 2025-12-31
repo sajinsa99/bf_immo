@@ -36,9 +36,11 @@ The dashboard will:
 ## Files
 
 - **`bf_immo.sh`** - Control script (start/stop/status with year range support)
-- **`fetch_lepriximmo.py`** - Scraper to fetch data from LePrixImmo.fr
+- **`fetch_lepriximmo.py`** - Scraper to fetch data from LePrixImmo.fr (default, lightweight)
+- **`fetch_dvf.py`** - Direct downloader for raw DVF data from data.gouv.fr (comprehensive, ~350MB)
 - **`index.html`** - Interactive dashboard with Chart.js
 - **`data.json`** - Generated JSON data (auto-created)
+- **`dvf_files/`** - Cache directory for downloaded DVF files
 - **`requirements.txt`** - Python dependencies
 
 ## Data Structure
@@ -86,11 +88,22 @@ Real estate data sourced from:
 - **License**: Open License 2.0
 - **Updates**: Annual
 
-### Data Availability
+### Data Sources & Availability
 
+**LePrixImmo.fr approach** (default via `./bf_immo.sh start`):
+- Fast and lightweight (~10MB)
 - 2023, 2025: Real data from LePrixImmo.fr
-- 2020-2024: Mix of scraped and estimated values
-- Future years: Estimates based on market trends
+- 2020-2022, 2024: Mix of scraped and estimated values
+- Data quality: Good for recent trends
+
+**Raw DVF approach** (via `fetch_dvf.py`):
+- Comprehensive government dataset (~350MB download)
+- 2020-2025: Complete raw transaction data from data.gouv.fr
+- Data quality: Highest accuracy, requires parsing
+- First run: ~5-10 minutes (downloads and processes)
+- Subsequent runs: Cached data used
+
+Both sources track **Rue Pierre Brossolette, 92400 Courbevoie**
 
 ## Installation
 
@@ -98,6 +111,7 @@ Real estate data sourced from:
 - Python 3.7+
 - bash/zsh shell
 - Internet connection
+- Dependencies: requests, beautifulsoup4, polars (see requirements.txt)
 
 ### Setup
 ```bash
@@ -118,9 +132,10 @@ chmod +x bf_immo.sh
    - Installs dependencies (requests, beautifulsoup4)
    - Runs `fetch_lepriximmo.py`
 
-2. **Data fetching** (`fetch_lepriximmo.py`):
-   - Scrapes LePrixImmo.fr for each year in the range
-   - Extracts price/m² from the Rue Brossolette table row
+2. **Data fetching** (default uses `fetch_lepriximmo.py`, can use `fetch_dvf.py`):
+   - **LePrixImmo approach**: Scrapes LePrixImmo.fr for quick, lightweight results
+   - **DVF approach**: Downloads raw government data for comprehensive analysis
+   - Extracts price/m² for Rue Pierre Brossolette
    - Uses fallback estimates for missing years
    - Generates `data.json`
 
@@ -133,7 +148,8 @@ chmod +x bf_immo.sh
 
 - Python 3.7+
 - Modern web browser (Chrome, Firefox, Safari, Edge)
-- Internet connection (to fetch data from LePrixImmo.fr)
+- Internet connection (for data fetching)
+- Disk space: ~10MB (LePrixImmo) or ~350MB (DVF) depending on data source
 
 ## Troubleshooting
 
